@@ -6,13 +6,20 @@
 <% } %>
 <% if (props.stylingPackage?.name === "unistyles") { %>
 import './unistyles';
+import { DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { useUnistyles } from 'react-native-unistyles';
+import { useMemo } from 'react';
+<% } else if (props.stylingPackage?.name === "tamagui" || props.stylingPackage?.name === "restyle" || props.stylingPackage?.name === "nativewind" || props.stylingPackage?.name === "stylesheet") { %>
+import { DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { useColorScheme } from 'react-native';
+import { useMemo } from 'react';
 <% } %>
 <% if (props.internalizationPackage?.name === "i18next") { %>
   import './translation';
 <% } %>
 import "react-native-gesture-handler";
 <% if (props.stylingPackage?.name === "tamagui") { %>
-	import React, { useEffect } from "react";
+	import React from "react";
 	import { TamaguiProvider } from 'tamagui';
 	import * as SplashScreen from 'expo-splash-screen';
 	import { useFonts } from 'expo-font';
@@ -30,9 +37,9 @@ import "react-native-gesture-handler";
 
   vexo(process.env.VEXO_API_KEY); // eslint-disable-line
 
-  import RootStack from "./navigation"; // eslint-disable-line
+  import Navigation from "./navigation"; // eslint-disable-line
 <% } else { %>
-  import RootStack from "./navigation";
+  import Navigation from "./navigation";
 <% } %>
 
 export default function App() {
@@ -42,11 +49,8 @@ export default function App() {
 			InterBold: require("@tamagui/font-inter/otf/Inter-Bold.otf"),
 		});
 
-		useEffect(() => {
-			if (loaded) {
-				SplashScreen.hideAsync();
-			}
-		}, [loaded])
+		const colorScheme = useColorScheme();
+		const theme = useMemo(() => colorScheme === 'dark' ? DarkTheme : DefaultTheme, [colorScheme]);
 
 		if (!loaded) {
 			return null;
@@ -54,16 +58,43 @@ export default function App() {
 
 		return (
 			<TamaguiProvider config={config}>
-				<RootStack />
+				<Navigation theme={theme} onReady={() => SplashScreen.hideAsync()} />
 			</TamaguiProvider>
 		);
 	<% } else if (props.stylingPackage?.name === "restyle") { %>
+		const colorScheme = useColorScheme();
+		const navigationTheme = useMemo(() => colorScheme === 'dark' ? DarkTheme : DefaultTheme, [colorScheme]);
+
 		return (
       <ThemeProvider theme={theme}>
-        <RootStack />
+        <Navigation theme={navigationTheme} />
       </ThemeProvider>
     );
+	<% } else if (props.stylingPackage?.name === "unistyles")  { %> 
+    const { theme, rt } = useUnistyles();
+
+    const baseTheme = rt.colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+    const mergedTheme = useMemo(() => ({
+      ...baseTheme,
+      colors: {
+        ...baseTheme.colors,
+        background: theme.colors.background,
+        text: theme.colors.typography,
+        primary: theme.colors.astral,
+        secondary: theme.colors.cornflowerBlue,
+        border: theme.colors.limedSpruce,
+        card: theme.colors.background,
+        notification: theme.colors.astral,
+      },
+    }), [baseTheme, theme.colors.background, theme.colors.typography, theme.colors.astral, theme.colors.cornflowerBlue, theme.colors.limedSpruce]);
+
+    return <Navigation theme={mergedTheme} />;
+	<% } else if (props.stylingPackage?.name === "nativewind" || props.stylingPackage?.name === "stylesheet") { %> 
+		const colorScheme = useColorScheme();
+		const theme = useMemo(() => colorScheme === 'dark' ? DarkTheme : DefaultTheme, [colorScheme]);
+
+		return <Navigation theme={theme} />;
 	<% } else { %> 
-		return <RootStack />;
+		return <Navigation />;
 	<% } %>
 }
